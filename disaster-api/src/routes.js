@@ -13,4 +13,22 @@ export default {
       public: true,
     },
   },
+  '/register': {
+    post: {
+      method: AppController.registerUser,
+      public: true,
+    },
+  },
+  '/position': {
+    post: {
+      method: AppController.updatePosition,
+      public: true,
+    },
+  },
+  '/search': {
+    get: {
+      method: AppController.search,
+      public: true,
+    },
+  },
 };

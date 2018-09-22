@@ -6,7 +6,6 @@ const LocationSchema = new Schema({
 });
 
 export default new Schema({
-  _id: String,
   location: {
     type: LocationSchema,
     index: '2dsphere',

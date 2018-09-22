@@ -1,7 +1,8 @@
 import Joi from 'joi';
 import _ from 'lodash';
 import decorate from 'decorate-it';
-import { Device, User } from '../models';
+import { Device, User, EnteredArea } from '../models';
+import NotificationService from './NotificationService';
 
 const ERROR_DISTANCE = 200;
 const WARNING_DISTANCE = ERROR_DISTANCE * 3;
@@ -14,6 +15,9 @@ const INFO_DISTANCE = ERROR_DISTANCE * 10;
 const AppService = {
   test,
   event,
+  registerUser,
+  search,
+  updatePosition,
 };
 
 decorate(AppService, 'AppService');
@@ -34,20 +38,24 @@ function _isAlertValue(value) {
 
 async function event(data) {
   const existing = await Device.findById(data.deviceId);
+  const location = {
+    type: 'Point',
+    coordinates: [data.location.longitude, data.location.latitude],
+  };
   if (!existing) {
     await Device.create({
       _id: data.deviceId,
       ..._.pick(data, 'value', 'type'),
-      location: {
-        type: 'Point',
-        coordinates: [data.location.longitude, data.location.latitude],
-      },
+      isAlert: _isAlertValue(data.value),
+      location,
     });
     return;
   }
   const isAlreadyAlert = _isAlertValue(existing.value);
   const isAlert = _isAlertValue(data.value);
   existing.value = data.value;
+  existing.isAlert = isAlert;
+  existing.location = location;
   await existing.save();
   if (isAlert === isAlreadyAlert) {
     return;
@@ -76,172 +84,109 @@ event.schema = {
     .required(),
 };
 
-function addUser(data) {}
+async function registerUser() {
+  const user = new User();
+  await user.save();
+  return {
+    userId: user.id,
+  };
+}
 
-addUser.params = ['data'];
-addUser.schema = {
-  data: Joi.object()
+registerUser.params = [];
+registerUser.schema = {};
+
+async function _searchByDistance(criteria, maxDistance) {
+  return await Device.find({
+    isAlert: true,
+    location: {
+      $near: {
+        $geometry: {
+          type: 'Point',
+          coordinates: [criteria.longitude, criteria.latitude],
+        },
+        $maxDistance: maxDistance,
+      },
+    },
+  });
+}
+
+async function search(criteria) {
+  return await _searchByDistance(criteria, INFO_DISTANCE);
+}
+
+search.params = ['criteria'];
+search.schema = {
+  criteria: Joi.object()
     .keys({
-      deviceId: Joi.number().required(),
-      value: Joi.number().required(),
-      type: Joi.string().required(),
-      location: Joi.object()
-        .keys({
-          longitude: Joi.number().required(),
-          latitude: Joi.number().required(),
-        })
-        .required(),
+      longitude: Joi.number().required(),
+      latitude: Joi.number().required(),
     })
     .required(),
 };
 
-// /**
-//  * Create password hash with pbkdf2
-//  * @param {String} password the user password
-//  * @param {String} salt the salt
-//  * @returns {String} the password hash
-//  * @private
-//  */
-// async function _createPasswordHash(password, salt) {
-//   const hash = await crypto.pbkdf2(password,
-//     salt, config.SECURITY.ITERATIONS,
-//     config.SECURITY.PASSWORD_LENGTH,
-//     'sha1');
-//   return hash.toString('hex');
-// }
+async function updatePosition(data) {
+  const { userId } = data;
+  const user = await User.findByIdOrError(userId);
+  user.location = {
+    type: 'Point',
+    coordinates: [data.longitude, data.latitude],
+  };
+  const criteria = {
+    longitude: data.longitude,
+    latitude: data.latitude,
+  };
+  const allAreas = await EnteredArea.find({ userId });
+  const allAreasIndex = _.keyBy(allAreas, 'deviceId');
 
-// /**
-//  * Login with email and password
-//  * @param {String} email
-//  * @param {String} password
-//  * @returns {User} the user instance
-//  */
-// async function login(email, password) {
-//   const errorMsg = 'Invalid email or password';
-//   const user = await User.findOne({ email_lowered: email.toLowerCase() });
-//   if (!user) {
-//     throw new HTTPError.Unauthorized(errorMsg);
-//   }
-//   const hash = await _createPasswordHash(password, user.salt);
-//   if (hash !== user.password) {
-//     throw new HTTPError.Unauthorized(errorMsg);
-//   }
-//   return user;
-// }
+  const errorItems = await _searchByDistance(criteria, ERROR_DISTANCE);
+  const warningItems = await _searchByDistance(criteria, WARNING_DISTANCE);
+  const sentErrors = {};
+  let enteredCiritial = false;
+  let enteredWarning = false;
 
-// login.params = ['email', 'password'];
-// login.schema = {
-//   email: Joi.string().required(),
-//   password: Joi.string().required(),
-// };
+  for (const device of errorItems) {
+    if (allAreasIndex[device.deviceId]) {
+      delete allAreasIndex[device.deviceId];
+    } else {
+      await EnteredArea.create({
+        deviceId: device._id,
+        userId,
+      });
+      await NotificationService.sendNotification(
+        `⛔️ You are entering a critical zone.`,
+        { device },
+        userId
+      );
+      sentErrors[device._id] = true;
+    }
+  }
+  for (const device of warningItems) {
+    if (allAreasIndex[device.deviceId]) {
+      delete allAreasIndex[device.deviceId];
+    } else if (!sentErrors[device._id]) {
+      await EnteredArea.create({
+        deviceId: device._id,
+        userId,
+      });
+      await NotificationService.sendNotification(
+        `⚠️ You are entering a warning zone.`,
+        { device },
+        userId
+      );
+    }
+  }
+  for (const item of _.values(allAreasIndex)) {
+    await item.delete();
+  }
+}
 
-// /**
-//  * Register a new user
-//  * @param {Object} values the values to create
-//  * @returns {User} the created user
-//  */
-// async function register(values) {
-//   const existing = await User.findOne({ email_lowered: values.email.toLowerCase() });
-//   if (existing) {
-//     throw new HTTPError.BadRequest('Email address is already registered');
-//   }
-//   let salt = await crypto.randomBytes(config.SECURITY.SALT_LENGTH);
-//   salt = salt.toString('hex');
-//   values.salt = salt.toString('hex');
-//   values.password = await _createPasswordHash(values.password, salt);
-//   values.email_lowered = values.email.toLowerCase();
-
-//   return await User.create(values);
-// }
-
-// register.params = ['values'];
-// register.schema = {
-//   values: Joi.object().keys({
-//     password: Joi.string().required(),
-//     email: Joi.string().email().required(),
-//   }).required(),
-// };
-
-// /**
-//  * Create bearer token
-//  * @param {Number} userId the target user
-//  * @returns {BearerToken} the token
-//  */
-// async function createBearerToken(userId) {
-//   const token = uuid();
-//   await BearerToken.create({ userId, _id: token });
-//   return token;
-// }
-
-// createBearerToken.params = ['userId'];
-// createBearerToken.schema = {
-//   userId: Joi.objectId().required(),
-// };
-
-// /**
-//  * Delete bearer token
-//  * @param {String} token the access token
-//  */
-// async function deleteBearerToken(token) {
-//   const bearerToken = await BearerToken.findById(token);
-//   await bearerToken.destroy();
-// }
-
-// deleteBearerToken.schema = {
-//   token: Joi.string().required(),
-// };
-
-// /**
-//  * Log in with social network
-//  * @param {String} accessToken the access token
-//  * @param {String} provider the social provider name
-//  * @returns {User} the logged in user
-//  */
-// async function socialLogin(accessToken, provider) {
-//   const res = await request
-//     .get('https://www.googleapis.com/oauth2/v1/userinfo?alt=json')
-//     .query({
-//       access_token: accessToken,
-//     })
-//     .endAsync();
-//   const body = res.body;
-//   const profile = {
-//     id: body.id,
-//     email: body.email,
-//     firstName: body.given_name,
-//     lastName: body.family_name,
-//     photoUrl: body.picture,
-//   };
-
-//   // user already connected
-//   let user = await User.findOne({
-//     [`${provider}Id`]: profile.id,
-//   });
-//   if (user) {
-//     return user;
-//   }
-
-//   // match by email address
-//   user = await User.findOne({ email_lowered: profile.email.toLowerCase() });
-//   if (user) {
-//     user[`${provider}Id`] = profile.id;
-//     await user.save();
-//     return user;
-//   }
-
-//   const salt = await crypto.randomBytes(config.SECURITY.SALT_LENGTH);
-//   const values = {
-//     salt: salt.toString('hex'),
-//     password: await _createPasswordHash(uuid(), salt),
-//     email: profile.email,
-//     email_lowered: profile.email.toLowerCase(),
-//     [`${provider}Id`]: profile.id,
-//   };
-//   return await User.create(values);
-// }
-
-// socialLogin.params = ['accessToken', 'provider'];
-// socialLogin.schema = {
-//   accessToken: Joi.string().required(),
-//   provider: Joi.socialType().required(),
-// };
+updatePosition.params = ['data'];
+updatePosition.schema = {
+  data: Joi.object()
+    .keys({
+      userId: Joi.string().required(),
+      longitude: Joi.number().required(),
+      latitude: Joi.number().required(),
+    })
+    .required(),
+};

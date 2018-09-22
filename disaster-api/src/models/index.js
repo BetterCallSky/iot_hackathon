@@ -7,6 +7,7 @@ import HttpError from 'http-errors';
 import BearerTokenSchema from './BearerToken';
 import UserSchema from './User';
 import DeviceSchema from './Device';
+import EnteredAreaSchema from './EnteredArea';
 
 const services = JSON.parse(process.env.VCAP_SERVICES);
 const { credentials } = services['compose-for-mongodb'][0];
@@ -53,9 +54,11 @@ function createModel(schema, name) {
 export const User = createModel(UserSchema, 'User');
 export const BearerToken = createModel(BearerTokenSchema, 'BearerToken');
 export const Device = createModel(DeviceSchema, 'Device');
+export const EnteredArea = createModel(EnteredAreaSchema, 'EnteredArea');
 
 export default {
   User,
   BearerToken,
   Device,
+  EnteredArea,
 };

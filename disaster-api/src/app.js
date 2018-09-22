@@ -13,6 +13,7 @@ import './bootstrap';
 import routes from './routes';
 import loadRoutes from './common/loadRoutes';
 import logger from './common/logger';
+import NotificationService from './services/NotificationService';
 
 const app = express();
 app.set('port', config.PORT);
@@ -45,13 +46,16 @@ app.use(
 );
 
 if (!module.parent) {
-  const server = http.createServer(app);
-  server.listen(app.get('port'), () => {
-    logger.info(
-      `Express server listening on port ${app.get('port')} in ${
-        process.env.NODE_ENV
-      } mode`
-    );
+  NotificationService.refresh().then(() => {
+    setInterval(() => NotificationService.refresh(), 1000 * 60 * 60 * 20);
+    const server = http.createServer(app);
+    server.listen(app.get('port'), () => {
+      logger.info(
+        `Express server listening on port ${app.get('port')} in ${
+          process.env.NODE_ENV
+        } mode`
+      );
+    });
   });
 }
 
