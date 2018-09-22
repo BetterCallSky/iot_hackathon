@@ -25,4 +25,5 @@ There is a network of IoT devices detecting natural disasters (fire, flood, eart
 ### Screenshots
 ![](img/a.jpg)
 
-![](img/b.jpg)
+![](img/b.png)
+
