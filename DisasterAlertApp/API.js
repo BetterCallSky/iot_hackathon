@@ -1,7 +1,9 @@
 import { AsyncStorage } from 'react-native';
 
-const IS_LOCAL = true;
-const BASE_API_URL = IS_LOCAL ? 'https://9640b8da.ngrok.io' : '';
+const IS_LOCAL = false;
+const BASE_API_URL = IS_LOCAL
+  ? 'https://9640b8da.ngrok.io'
+  : 'https://disaster-api.eu-gb.mybluemix.net';
 const CLIENT_SECRET = '1b368d68-8718-4b4e-97c8-24f624492100';
 const APP_ID = '09df8e33-cc5c-4793-b235-7a39a00787eb';
 

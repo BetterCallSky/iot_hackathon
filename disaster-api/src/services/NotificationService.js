@@ -16,8 +16,8 @@ const NotificationService = {
 decorate(NotificationService, 'AppService');
 
 export default NotificationService;
-
 const services = JSON.parse(process.env.VCAP_SERVICES);
+
 const { credentials } = services['user-provided'][0];
 
 let accessToken = '';

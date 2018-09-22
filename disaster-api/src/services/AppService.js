@@ -5,7 +5,7 @@ import { Device, User, EnteredArea } from '../models';
 import NotificationService from './NotificationService';
 
 const ERROR_DISTANCE = 200;
-const WARNING_DISTANCE = ERROR_DISTANCE * 3;
+const WARNING_DISTANCE = ERROR_DISTANCE * 1.5;
 const INFO_DISTANCE = ERROR_DISTANCE * 10;
 
 // ------------------------------------
@@ -36,6 +36,19 @@ function _isAlertValue(value) {
   return value > 50;
 }
 
+const getIcon = type => {
+  switch (type) {
+    case 'fire':
+      return '🔥';
+    case 'flood':
+      return '💧';
+    case 'hurricane':
+      return '🌪 ';
+    default:
+      return '';
+  }
+};
+
 async function event(data) {
   const existing = await Device.findById(data.deviceId);
   const location = {
@@ -54,16 +67,56 @@ async function event(data) {
   const isAlreadyAlert = _isAlertValue(existing.value);
   const isAlert = _isAlertValue(data.value);
   existing.value = data.value;
+  existing.type = data.type;
   existing.isAlert = isAlert;
   existing.location = location;
   await existing.save();
   if (isAlert === isAlreadyAlert) {
     return;
   }
-  if (isAlert) {
-    console.log('START ALERT');
+  const getUsers = distance =>
+    User.find({
+      location: {
+        $near: {
+          $geometry: location,
+          $maxDistance: distance,
+        },
+      },
+    });
+  if (!isAlert) {
+    const users = await getUsers(WARNING_DISTANCE);
+    for (const user of users) {
+      await NotificationService.sendNotification(
+        `Disaster is over ☀️`,
+        { device: existing },
+        user.id
+      );
+    }
   } else {
-    console.log('STOP ALERT');
+    const usersInError = await getUsers(ERROR_DISTANCE);
+    const usersInWarning = await getUsers(WARNING_DISTANCE);
+    const sentMap = {};
+    for (const user of usersInError) {
+      sentMap[user._id] = true;
+      await NotificationService.sendNotification(
+        `⛔️ You are in the critical zone of ${getIcon(
+          existing.type
+        )} disaster.`,
+        { device: existing },
+        user.id
+      );
+    }
+    for (const user of usersInWarning) {
+      if (!sentMap[user.id]) {
+        await NotificationService.sendNotification(
+          `⚠️ You are in the warning zone of ${getIcon(
+            existing.type
+          )} disaster.`,
+          { device: existing },
+          user.id
+        );
+      }
+    }
   }
 }
 
@@ -131,6 +184,7 @@ async function updatePosition(data) {
     type: 'Point',
     coordinates: [data.longitude, data.latitude],
   };
+  await user.save();
   const criteria = {
     longitude: data.longitude,
     latitude: data.latitude,
@@ -141,17 +195,22 @@ async function updatePosition(data) {
   const errorItems = await _searchByDistance(criteria, ERROR_DISTANCE);
   const warningItems = await _searchByDistance(criteria, WARNING_DISTANCE);
   const sentErrors = {};
-  let enteredCiritial = false;
-  let enteredWarning = false;
 
   for (const device of errorItems) {
-    if (allAreasIndex[device.deviceId]) {
+    const existingArea = allAreasIndex[device.deviceId];
+    if (existingArea && existingArea.error) {
       delete allAreasIndex[device.deviceId];
     } else {
-      await EnteredArea.create({
-        deviceId: device._id,
-        userId,
-      });
+      if (existingArea) {
+        existingArea.error = true;
+        await existingArea.save();
+      } else {
+        await EnteredArea.create({
+          deviceId: device._id,
+          userId,
+          error: true,
+        });
+      }
       await NotificationService.sendNotification(
         `⛔️ You are entering a critical zone.`,
         { device },

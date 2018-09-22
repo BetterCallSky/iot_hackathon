@@ -10,7 +10,7 @@ import { registerToken, search, updatePosition } from './API';
 import MapView from 'react-native-maps';
 
 const ERROR_DISTANCE = 200;
-const WARNING_DISTANCE = ERROR_DISTANCE * 3;
+const WARNING_DISTANCE = ERROR_DISTANCE * 1.5;
 
 function distance(lat1, lon1, lat2, lon2) {
   var R = 6371; // Radius of the earth in km
@@ -58,13 +58,11 @@ export default class App extends Component {
       if (!notification) {
         return;
       }
-      // alert(JSON.stringify(notification, null, 2));
+      this.handleNotification(notification);
     });
 
     PushNotificationIOS.addEventListener('notification', notification => {
-      const body = notification.getMessage().body;
-      const params = JSON.parse(notification.getData().payload);
-      // alert(body);
+      this.handleNotification(notification);
       notification.finish(PushNotificationIOS.FetchResult.NoData);
     });
 
@@ -73,6 +71,20 @@ export default class App extends Component {
     });
   }
 
+  handleNotification = notification => {
+    const params = JSON.parse(notification.getData().payload);
+    if (params.device) {
+      const { device } = params;
+      const devices = { ...this.state.devices };
+      if (!device.isAlert) {
+        delete devices[device.id];
+      } else {
+        devices[device.id] = device;
+      }
+      this.setState({ devices });
+    }
+  };
+
   watchCoords = () => {
     navigator.geolocation.watchPosition(
       data => {
@@ -80,18 +92,22 @@ export default class App extends Component {
       },
       e => {
         alert('Cannot get coordinates : ' + e);
+      },
+      {
+        enableHighAccuracy: true,
+        distanceFilter: 0,
       }
     );
-    setTimeout(() => {
-      const pos = this.state.pos;
-      this.handleCoords(18.50667, 54.473965);
-      setTimeout(() => {
-        setTimeout(() => {
-          this.handleCoords(pos.longitude, pos.latitude);
-        }, 3000);
-        this.handleCoords(18.510879, 54.469963);
-      }, 3000);
-    }, 3000);
+    // setTimeout(() => {
+    //   const pos = this.state.pos;
+    //   this.handleCoords(18.50667, 54.473965);
+    //   setTimeout(() => {
+    //     setTimeout(() => {
+    //       this.handleCoords(pos.longitude, pos.latitude);
+    //     }, 3000);
+    //     this.handleCoords(18.510879, 54.469963);
+    //   }, 3000);
+    // }, 3000);
   };
 
   handleCoords = (longitude, latitude) => {
@@ -102,23 +118,32 @@ export default class App extends Component {
     };
     updatePosition(longitude, latitude);
     if (!isLoaded) {
-      search(longitude, latitude).then(devices => {
-        const existing = { ...this.state.devices };
-        devices.forEach(item => {
-          existing[item.id] = item;
-        });
-        this.setState({ devices: existing });
-      });
-      this.setState({
-        isLoaded: true,
-        region: {
-          latitude: latitude,
-          longitude: longitude,
-          latitudeDelta: 0.0922 / 2,
-          longitudeDelta: 0.0421 / 2,
+      this.setState(
+        {
+          isLoaded: true,
+          region: {
+            latitude: latitude,
+            longitude: longitude,
+            latitudeDelta: 0.0922 / 2,
+            longitudeDelta: 0.0421 / 2,
+          },
+          pos,
         },
-        pos,
-      });
+        () => {
+          const load = () =>
+            search(this.state.pos.longitude, this.state.pos.latitude).then(
+              devices => {
+                const existing = {};
+                devices.forEach(item => {
+                  existing[item.id] = item;
+                });
+                this.setState({ devices: existing });
+              }
+            );
+          load();
+          setInterval(load, 10 * 1000);
+        }
+      );
     } else {
       this.setState({
         pos,
@@ -137,6 +162,16 @@ export default class App extends Component {
       const loc = {
         longitude: device.location.coordinates[0],
         latitude: device.location.coordinates[1],
+      };
+      const getIcon = type => {
+        switch (type) {
+          case 'fire':
+            return '🔥';
+          case 'flood':
+            return '💧';
+          case 'hurricane':
+            return '🌪 ';
+        }
       };
       return (
         <React.Fragment key={device.id}>
@@ -160,7 +195,7 @@ export default class App extends Component {
           />
           <MapView.Marker coordinate={loc}>
             <View>
-              <Text>🔥</Text>
+              <Text>{getIcon(device.type)}</Text>
             </View>
           </MapView.Marker>
         </React.Fragment>
@@ -229,7 +264,7 @@ export default class App extends Component {
       <View style={styles.container}>
         {this.state.isLoaded && this.renderWarning()}
         {this.state.isLoaded && (
-          <MapView style={styles.map} region={this.state.region}>
+          <MapView style={styles.map} initialRegion={this.state.region}>
             <MapView.Marker.Animated
               ref={marker => {
                 this.marker = marker;
