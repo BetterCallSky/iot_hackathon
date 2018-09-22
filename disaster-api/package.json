@@ -11,7 +11,6 @@
     "oauth": "babel-node test_files/oauth"
   },
   "author": "",
-  "license": "GPL-3.0",
   "betterScripts": {
     "dev": {
       "command": "nodemon --exec babel-node src/app | bunyan -o short -l trace",
