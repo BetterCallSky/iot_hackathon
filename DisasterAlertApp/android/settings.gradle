@@ -1,0 +1,9 @@
+rootProject.name = 'DisasterAlertApp'
+include ':react-native-push-notification'
+project(':react-native-push-notification').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-push-notification/android')
+include ':react-native-maps'
+project(':react-native-maps').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-maps/lib/android')
+include ':react-native-ibm-mobilefirst'
+project(':react-native-ibm-mobilefirst').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-ibm-mobilefirst/android')
+
+include ':app'

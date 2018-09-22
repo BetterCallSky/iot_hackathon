@@ -1,0 +1,25 @@
+{
+  "name": "DisasterAlertApp",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "test": "jest"
+  },
+  "dependencies": {
+    "react": "16.3.1",
+    "react-native": "0.55.4",
+    "react-native-ibm-mobilefirst": "^8.0.2018072413",
+    "react-native-maps": "github:mikemorris/react-native-maps#ef5c839252e427268ae2ebbf4f0cced1cb51fed6",
+    "react-native-push-notification": "^3.1.1"
+  },
+  "devDependencies": {
+    "babel-jest": "23.6.0",
+    "babel-preset-react-native": "4.0.1",
+    "jest": "23.6.0",
+    "react-test-renderer": "16.3.1"
+  },
+  "jest": {
+    "preset": "react-native"
+  }
+}

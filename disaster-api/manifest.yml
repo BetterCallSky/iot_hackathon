@@ -1,0 +1,14 @@
+applications:
+- buildpack: sdk-for-nodejs
+  command: npm start
+  domain: eu-gb.mybluemix.net
+  host: disaster-api
+  instances: 1
+  memory: 256M
+  name: DisasterAPI
+  services:
+  - disaster-api-mongodb-1537553577737
+  - Push Notifications-37
+  timeout: 180
+domain: eu-gb.mybluemix.net
+host: disaster-api
