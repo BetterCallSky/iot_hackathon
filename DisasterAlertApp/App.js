@@ -10,7 +10,7 @@ import { registerToken, search, updatePosition } from './API';
 import MapView from 'react-native-maps';
 
 const ERROR_DISTANCE = 200;
-const WARNING_DISTANCE = ERROR_DISTANCE * 1.5;
+const WARNING_DISTANCE = ERROR_DISTANCE * 3;
 
 function distance(lat1, lon1, lat2, lon2) {
   var R = 6371; // Radius of the earth in km
@@ -86,8 +86,13 @@ export default class App extends Component {
   };
 
   watchCoords = () => {
+    let last = 0;
     navigator.geolocation.watchPosition(
       data => {
+        if (Date.now() - last < 5 * 1000) {
+          return;
+        }
+        last = Date.now();
         this.handleCoords(data.coords.longitude, data.coords.latitude);
       },
       e => {

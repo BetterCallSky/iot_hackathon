@@ -5,7 +5,7 @@ import { Device, User, EnteredArea } from '../models';
 import NotificationService from './NotificationService';
 
 const ERROR_DISTANCE = 200;
-const WARNING_DISTANCE = ERROR_DISTANCE * 1.5;
+const WARNING_DISTANCE = ERROR_DISTANCE * 3;
 const INFO_DISTANCE = ERROR_DISTANCE * 10;
 
 // ------------------------------------
@@ -197,7 +197,7 @@ async function updatePosition(data) {
   const sentErrors = {};
 
   for (const device of errorItems) {
-    const existingArea = allAreasIndex[device.deviceId];
+    const existingArea = allAreasIndex[device.id];
     if (existingArea && existingArea.error) {
       delete allAreasIndex[device.deviceId];
     } else {
@@ -206,7 +206,7 @@ async function updatePosition(data) {
         await existingArea.save();
       } else {
         await EnteredArea.create({
-          deviceId: device._id,
+          deviceId: device.id,
           userId,
           error: true,
         });
@@ -216,15 +216,15 @@ async function updatePosition(data) {
         { device },
         userId
       );
-      sentErrors[device._id] = true;
+      sentErrors[device.id] = true;
     }
   }
   for (const device of warningItems) {
-    if (allAreasIndex[device.deviceId]) {
-      delete allAreasIndex[device.deviceId];
-    } else if (!sentErrors[device._id]) {
+    if (allAreasIndex[device.id]) {
+      delete allAreasIndex[device.id];
+    } else if (!sentErrors[device.id]) {
       await EnteredArea.create({
-        deviceId: device._id,
+        deviceId: device.id,
         userId,
       });
       await NotificationService.sendNotification(

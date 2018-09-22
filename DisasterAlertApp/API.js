@@ -1,4 +1,5 @@
 import { AsyncStorage } from 'react-native';
+import BackgroundGeolocation from 'react-native-mauron85-background-geolocation';
 
 const IS_LOCAL = false;
 const BASE_API_URL = IS_LOCAL
@@ -86,4 +87,31 @@ export const search = async (longitude, latitude) => {
       method: 'GET',
     }
   ).then(res => res.json());
+};
+
+export const watchInBackground = async () => {
+  // const userId = await AsyncStorage.getItem('userId');
+  // BackgroundGeolocation.configure({
+  //   desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY,
+  //   stationaryRadius: 50,
+  //   distanceFilter: 50,
+  //   notificationTitle: 'Background tracking',
+  //   notificationText: 'enabled',
+  //   debug: true,
+  //   startOnBoot: false,
+  //   stopOnTerminate: false,
+  //   locationProvider: BackgroundGeolocation.ACTIVITY_PROVIDER,
+  //   interval: 10000,
+  //   fastestInterval: 5000,
+  //   activitiesInterval: 10000,
+  //   stopOnStillActivity: false,
+  //   url: 'https://9640b8da.ngrok.io/location',
+  //   // customize post properties
+  //   postTemplate: {
+  //     lat: '@latitude',
+  //     lon: '@longitude',
+  //     userId,
+  //   },
+  // });
+  // BackgroundGeolocation.start();
 };
