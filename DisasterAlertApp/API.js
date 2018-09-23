@@ -1,13 +1,25 @@
+/**
+ * Provides functions for connecting with API services.
+ */
 import { AsyncStorage } from 'react-native';
-import BackgroundGeolocation from 'react-native-mauron85-background-geolocation';
 
+// for easy testing in localhost
 const IS_LOCAL = false;
+
+// Url for bluemix API
 const BASE_API_URL = IS_LOCAL
-  ? 'https://9640b8da.ngrok.io'
+  ? 'https://cad07e05.ngrok.io'
   : 'https://disaster-api.eu-gb.mybluemix.net';
+
+// Client secreted from "Push notification" service
 const CLIENT_SECRET = '1b368d68-8718-4b4e-97c8-24f624492100';
+
+// Application id from "Push notification" service
 const APP_ID = '09df8e33-cc5c-4793-b235-7a39a00787eb';
 
+/**
+ * Get from cache or generate and use userId.
+ */
 const getUserId = async () => {
   const existing = await AsyncStorage.getItem('userId');
   if (existing) {
@@ -23,6 +35,9 @@ const getUserId = async () => {
   return userId;
 };
 
+/**
+ * Register token with API.
+ */
 export const registerToken = async deviceToken => {
   const existing = await AsyncStorage.getItem('deviceToken');
   if (existing === deviceToken) {
@@ -58,6 +73,9 @@ export const registerToken = async deviceToken => {
   }
 };
 
+/**
+ * Update current coordinates.
+ */
 export const updatePosition = async (longitude, latitude) => {
   const userId = await AsyncStorage.getItem('userId');
   if (!userId) {
@@ -87,31 +105,4 @@ export const search = async (longitude, latitude) => {
       method: 'GET',
     }
   ).then(res => res.json());
-};
-
-export const watchInBackground = async () => {
-  // const userId = await AsyncStorage.getItem('userId');
-  // BackgroundGeolocation.configure({
-  //   desiredAccuracy: BackgroundGeolocation.HIGH_ACCURACY,
-  //   stationaryRadius: 50,
-  //   distanceFilter: 50,
-  //   notificationTitle: 'Background tracking',
-  //   notificationText: 'enabled',
-  //   debug: true,
-  //   startOnBoot: false,
-  //   stopOnTerminate: false,
-  //   locationProvider: BackgroundGeolocation.ACTIVITY_PROVIDER,
-  //   interval: 10000,
-  //   fastestInterval: 5000,
-  //   activitiesInterval: 10000,
-  //   stopOnStillActivity: false,
-  //   url: 'https://9640b8da.ngrok.io/location',
-  //   // customize post properties
-  //   postTemplate: {
-  //     lat: '@latitude',
-  //     lon: '@longitude',
-  //     userId,
-  //   },
-  // });
-  // BackgroundGeolocation.start();
 };

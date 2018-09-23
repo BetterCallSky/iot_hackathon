@@ -1,17 +1,22 @@
+/**
+ * Main Application file.
+ */
+
 import React, { Component } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  PushNotificationIOS,
-  AsyncStorage,
-} from 'react-native';
+import { StyleSheet, Text, View, PushNotificationIOS } from 'react-native';
 import { registerToken, search, updatePosition } from './API';
 import MapView from 'react-native-maps';
 
+/**
+ * Settings for error and warning distance should match backend API.
+ */
 const ERROR_DISTANCE = 200;
 const WARNING_DISTANCE = ERROR_DISTANCE * 3;
 
+/**
+ * Calculate distance in km between two coordinates.
+ * Used to display warning message if there are any intersections.
+ */
 function distance(lat1, lon1, lat2, lon2) {
   var R = 6371; // Radius of the earth in km
   var dLat = deg2rad(lat2 - lat1); // deg2rad below
@@ -31,22 +36,10 @@ function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
 
-// function distance(lat1, lon1, lat2, lon2) {
-//   var p = 0.017453292519943295; // Math.PI / 180
-//   var c = Math.cos;
-//   var a =
-//     0.5 -
-//     c((lat2 - lat1) * p) / 2 +
-//     (c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p))) / 2;
-
-//   return 12742 * Math.asin(Math.sqrt(a)); // 2 * R; R = 6371 km
-// }
-
 export default class App extends Component {
   state = { isLoaded: false, devices: {}, msg: null };
 
   async componentDidMount() {
-    // await AsyncStorage.clear();
     PushNotificationIOS.requestPermissions(['alert', 'badge', 'sound']);
 
     PushNotificationIOS.addEventListener('register', async deviceToken => {
@@ -71,6 +64,10 @@ export default class App extends Component {
     });
   }
 
+  /**
+   * Handle Push notification.
+   * Notification should contain an update device instance.
+   */
   handleNotification = notification => {
     const params = JSON.parse(notification.getData().payload);
     if (params.device) {
@@ -85,10 +82,14 @@ export default class App extends Component {
     }
   };
 
+  /**
+   * Watch user's coordinates in the background.
+   */
   watchCoords = () => {
     let last = 0;
     navigator.geolocation.watchPosition(
       data => {
+        // 5s limit
         if (Date.now() - last < 5 * 1000) {
           return;
         }
@@ -96,13 +97,17 @@ export default class App extends Component {
         this.handleCoords(data.coords.longitude, data.coords.latitude);
       },
       e => {
-        alert('Cannot get coordinates : ' + e);
+        console.error('Cannot get coordinates : ', e);
       },
       {
         enableHighAccuracy: true,
         distanceFilter: 0,
       }
     );
+
+    //
+    // uncomment below for simulation
+
     // setTimeout(() => {
     //   const pos = this.state.pos;
     //   this.handleCoords(18.50667, 54.473965);
@@ -135,6 +140,7 @@ export default class App extends Component {
           pos,
         },
         () => {
+          // load nearby disasters
           const load = () =>
             search(this.state.pos.longitude, this.state.pos.latitude).then(
               devices => {
@@ -223,6 +229,7 @@ export default class App extends Component {
         ) * 1000;
       if (d <= ERROR_DISTANCE) {
         isError = true;
+        // no need to other devices
         break;
       }
       if (d <= WARNING_DISTANCE) {

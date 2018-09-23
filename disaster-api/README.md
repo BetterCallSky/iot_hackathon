@@ -2,7 +2,7 @@
  
 
 ## Requirements
-* node v6 (https://nodejs.org)
+* node v8 (https://nodejs.org)
 * mongoDB v3.2 (https://www.mongodb.com/)
 
 ## Configuration
@@ -10,6 +10,7 @@
 Update configuration in `src/localConfig.js`.  
 In Bluemix, all settings should be provided by default via `VCAP_SERVICES`.  
 Update `manifest.yml` to match your Bluemix configuration.  
+Services "Compose for MongoDB" and "Push Notifications" should be connected.
 
 
 ## Install dependencies

@@ -1,3 +1,7 @@
+/**
+ * Main Application service.
+ */
+
 import Joi from 'joi';
 import _ from 'lodash';
 import decorate from 'decorate-it';
@@ -13,7 +17,6 @@ const INFO_DISTANCE = ERROR_DISTANCE * 10;
 // ------------------------------------
 
 const AppService = {
-  test,
   event,
   registerUser,
   search,
@@ -23,13 +26,6 @@ const AppService = {
 decorate(AppService, 'AppService');
 
 export default AppService;
-
-async function test() {
-  return 123;
-}
-
-test.params = [];
-test.schema = {};
 
 function _isAlertValue(value) {
   // mock values for alerts
@@ -49,6 +45,9 @@ const getIcon = type => {
   }
 };
 
+/**
+ * Handle update from IoT device.
+ */
 async function event(data) {
   const existing = await Device.findById(data.deviceId);
   const location = {
@@ -98,6 +97,11 @@ async function event(data) {
     const sentMap = {};
     for (const user of usersInError) {
       sentMap[user._id] = true;
+      await EnteredArea.create({
+        deviceId: existing.id,
+        userId: user.id,
+        error: true,
+      });
       await NotificationService.sendNotification(
         `⛔️ You are in the critical zone of ${getIcon(
           existing.type
@@ -108,6 +112,11 @@ async function event(data) {
     }
     for (const user of usersInWarning) {
       if (!sentMap[user.id]) {
+        await EnteredArea.create({
+          deviceId: existing.id,
+          userId: user.id,
+          error: false,
+        });
         await NotificationService.sendNotification(
           `⚠️ You are in the warning zone of ${getIcon(
             existing.type
@@ -137,6 +146,9 @@ event.schema = {
     .required(),
 };
 
+/**
+ * Create a new user.
+ */
 async function registerUser() {
   const user = new User();
   await user.save();
@@ -148,6 +160,9 @@ async function registerUser() {
 registerUser.params = [];
 registerUser.schema = {};
 
+/**
+ * Search for device geo intersection.
+ */
 async function _searchByDistance(criteria, maxDistance) {
   return await Device.find({
     isAlert: true,
@@ -163,6 +178,9 @@ async function _searchByDistance(criteria, maxDistance) {
   });
 }
 
+/**
+ * Search for nearby devices.
+ */
 async function search(criteria) {
   return await _searchByDistance(criteria, INFO_DISTANCE);
 }
@@ -177,6 +195,9 @@ search.schema = {
     .required(),
 };
 
+/**
+ * Update user's position and check for intersections.
+ */
 async function updatePosition(data) {
   const { userId } = data;
   const user = await User.findByIdOrError(userId);

@@ -1,3 +1,7 @@
+/**
+ * Update this setting for local development only.
+ */
+
 if (!process.env.VCAP_SERVICES) {
   process.env.VCAP_SERVICES = JSON.stringify({
     'user-provided': [

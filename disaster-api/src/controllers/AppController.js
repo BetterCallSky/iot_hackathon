@@ -1,16 +1,11 @@
 import AppService from '../services/AppService';
 
 export default {
-  test,
   event,
   registerUser,
   search,
   updatePosition,
 };
-
-async function test(req, res) {
-  res.json(await AppService.test());
-}
 
 async function event(req, res) {
   await AppService.event(req.body);
@@ -18,6 +13,7 @@ async function event(req, res) {
     ok: true,
   });
 }
+
 async function updatePosition(req, res) {
   await AppService.updatePosition(req.body);
   res.json({

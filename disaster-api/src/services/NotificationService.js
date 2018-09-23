@@ -1,5 +1,8 @@
+/**
+ * Service for Push Notifications.
+ */
+
 import Joi from 'joi';
-import _ from 'lodash';
 import decorate from 'decorate-it';
 
 import request from 'superagent';
@@ -22,6 +25,9 @@ const { credentials } = services['user-provided'][0];
 
 let accessToken = '';
 
+/**
+ * Refresh Access Token.
+ */
 async function refresh() {
   const ret = await request
     .post('https://iam.bluemix.net/identity/token')
@@ -36,6 +42,9 @@ async function refresh() {
 refresh.params = [];
 refresh.schema = {};
 
+/**
+ * Send push notification to the given user.
+ */
 async function sendNotification(text, params, userId) {
   await request
     .post(`${credentials.url}/messages`)

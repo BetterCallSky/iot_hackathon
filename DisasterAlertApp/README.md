@@ -19,6 +19,7 @@ Update configuration in `API.js`.
 ## Running
 
 Run `react-native run-ios`.  
-Open `ios/DisasterAlertApp.xcodeproj` in XCode and deploy to your iPhone.  
+Or open `ios/DisasterAlertApp.xcodeproj` in XCode and deploy to your iPhone.
+Make sure to enable 'Release' mode in Product -> Edit Scheme -> Run -> Info -> Build Configuration.  
 
  
