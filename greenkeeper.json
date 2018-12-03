@@ -1,0 +1,10 @@
+{
+  "groups": {
+    "default": {
+      "packages": [
+        "DisasterAlertApp/package.json",
+        "disaster-api/package.json"
+      ]
+    }
+  }
+}
