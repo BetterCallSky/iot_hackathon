@@ -1,5 +1,7 @@
 # Disaster alert
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/BetterCallSky/iot_hackathon.svg)](https://greenkeeper.io/)
+
 There is a network of IoT devices detecting natural disasters (fire, flood, earthquake, hurricane). People use a `Disaster Alert` application on their mobile phones, and receive immediate notifications if there are any critical situations in their area.
 
 
